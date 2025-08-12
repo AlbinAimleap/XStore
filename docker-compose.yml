@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: xstore_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-xstore_db}
+      POSTGRES_USER: ${DB_USER:-xstore_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-xstore_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - xstore-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xstore_app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-xstore_db}
+      DB_USER: ${DB_USER:-xstore_user}
+      DB_PASSWORD: ${DB_PASSWORD:-xstore_password}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secure-jwt-secret}
+    volumes:
+      - app_uploads:/app/server/uploads
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - xstore-network
+
+volumes:
+  postgres_data:
+    driver: local
+  app_uploads:
+    driver: local
+
+networks:
+  xstore-network:
+    driver: bridge
